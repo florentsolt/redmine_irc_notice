@@ -1,38 +1,53 @@
 Irc.register "Changeset" do |changeset|
-  url = Irc.url(changeset.event_url)
+
+  issue = changeset.issues.first
+
+  first_line = "New changeset"
+
   if changeset.user.is_a? User
-    user = changeset.user.login.titleize
-    Irc.say "#{user} commited r#{changeset.revision} #{url}"
-  else
-    Irc.say "A new commit r#{changeset.revision} #{url}"
+    first_line << " by #{changeset.user.login.titleize}"
   end
+
+  if not issue.nil?
+    first_line << " for issue \"#{issue.subject}\" in #{issue.project.name}"
+  end
+
+  Irc.say first_line
+
   if not changeset.comments.gsub(/([r#]\d+)|merge|trunk|qa|prod|in|to/i, '').strip.empty?
     changeset.comments.split("\n").each do |line|
       Irc.say "   » #{line.gsub('#', '')}"
     end
   end
 
-  issue = changeset.issues.first
   if not issue.nil?
-    project = issue.project.name
-    subject = issue.subject
     url = Irc.url(issue.event_url)
-    Irc.say "   » For action #{issue.id} #{url} in #{project}"
-    Irc.say "   » #{subject}"
-  else
-    Irc.say "   » Not related to an action or project"
+    Irc.say "   » #{url} (issue)"
   end
+
+  url = Irc.url(changeset.event_url)
+  Irc.say "   » #{url}"
+
 end
 
 Irc.register "Issue" do |issue|
-  url = Irc.url(issue.event_url)
-  project = issue.project.name
-  Irc.say "New action #{issue.id} #{url} in #{project}"
-  Irc.say "   » #{issue.subject}"
-  if issue.author and issue.assigned_to
-    author = issue.author.login.titleize
-    assignee = issue.assigned_to.login.titleize
-    Irc.say "   » by #{author} for #{assignee}"
-  end
-end
 
+  first_line = "New action "
+
+  if issue.author
+      first_line << " by #{issue.author.login.titleize}"
+  end
+
+  if issue.assigned_to
+      first_line << " for #{issue.assigned_to.login.titleize}"
+  end
+
+  first_line << " in #{issue.project.name}"
+
+  Irc.say first_line
+  Irc.say "   » #{issue.subject}"
+
+  url = Irc.url(issue.event_url)
+  Irc.say "   » #{url}"
+
+end
