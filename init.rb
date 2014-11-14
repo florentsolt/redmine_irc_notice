@@ -6,6 +6,7 @@ Redmine::Plugin.register :redmine_irc_notice do
   url 'https://github.com/florentsolt/redmine_irc_notice'
 
   settings :default => {
+    'enabled' => true,
     'host' => 'localhost',
     'port' => 6667,
     'chan' => '#redmine',

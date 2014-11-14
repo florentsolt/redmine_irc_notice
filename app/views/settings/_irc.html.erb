@@ -1,4 +1,8 @@
 <p>
+    <label for="settings_enabled">Enabled</label>
+    <input type="checkbox" id="settings_enabled" <%= settings['enabled'] ? 'checked' : ''%> name="settings[enabled]" >
+</p>
+<p>
     <label for="settings_host">Hostname or ip</label>
     <input type="text" id="settings_host" name="settings[host]" value="<%= settings['host'] %>">
 </p>

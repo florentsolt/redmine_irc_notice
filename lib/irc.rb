@@ -11,7 +11,6 @@ module Irc
     Rails.application.routes.url_helpers.url_for(param)
   end
 
-  @@mutex = Mutex.new
   @@socket = nil
   @@listen = {}
 
@@ -24,38 +23,35 @@ module Irc
   end
 
   def self.notice(object)
-    Thread.new do
-      @@mutex.synchronize do
+    return if not Setting.plugin_redmine_irc_notice['enabled']
+    begin
+      if @@listen.key? object.class.name
+        @@socket = TCPSocket.new(Setting.plugin_redmine_irc_notice['host'], Setting.plugin_redmine_irc_notice['port'].to_i)
+
+        nick = object.class.name.split(':').last.downcase
+
+        @@socket.puts "NICK #{nick}"
+        @@socket.puts "USER #{nick} #{nick} #{nick} #{nick}"
+
+        # Wait register
         begin
-          if @@listen.key? object.class.name
-            @@socket = TCPSocket.new(Setting.plugin_redmine_irc_notice['host'], Setting.plugin_redmine_irc_notice['port'].to_i)
+          line = @@socket.gets
+        end while line !~ /001 #{nick}/
 
-            nick = object.class.name.split(':').last.downcase
+        # CTCP Time (not sure about that)
+        @@socket.puts "NOTICE #{nick} #{Time.now}"
 
-            @@socket.puts "NICK #{nick}"
-            @@socket.puts "USER #{nick} #{nick} #{nick} #{nick}"
-
-            # Wait register
-            begin
-              line = @@socket.gets
-            end while line !~ /001 #{nick}/
-
-            # CTCP Time (not sure about that)
-            @@socket.puts "NOTICE #{nick} #{Time.now}"
-
-            @@listen[object.class.name].call(object)
-          end
-        rescue => e
-          Rails.logger.error "Irc notification error: #{e.message}"
-        ensure
-          if not @@socket.nil? and @@socket
-            @@socket.puts "QUIT"
-            @@socket.flush
-            @@socket.gets until @@socket.eof?
-            @@socket.close
-            @@socket = nil
-          end
-        end
+        @@listen[object.class.name].call(object)
+      end
+    rescue => e
+      Rails.logger.error "Irc notification error: #{e.message}"
+    ensure
+      if not @@socket.nil? and @@socket
+        @@socket.puts "QUIT"
+        @@socket.flush
+        @@socket.gets until @@socket.eof?
+        @@socket.close
+        @@socket = nil
       end
     end
   end
